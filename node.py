@@ -112,7 +112,7 @@ def nodeThread(node_id):
 	server_t=threading.Thread(target = serverThread, args = (node_id,))
 	server_t.start()
 def find_predecessor(node_id):
-
+	pass
 
 #this function creates a new node
 def create_node(node_id):
@@ -122,9 +122,11 @@ def create_node(node_id):
 
 #this function removes node with the id "node_id" from the system
 def remove_node(node_id):
+	pass
 	#somehow remove the node
 #this function finds key_id
 def find_key(node_id, key_id):
+	pass
 	#somehow find the key
 	
 
