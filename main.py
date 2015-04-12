@@ -30,12 +30,12 @@ def recvThread(conn, unique):
 #adds a node to Chord
 def join_handler(node_id):
 	#check if the node already exists
-	if(globals.active_nodes[int(node_id)]):
+	if(globals.active_nodes[node_id]):
 		print("node already in Chord!\n")
 		return
 
 	#create a thread representing the node
-	myNode = Node(int(node_id))
+	myNode = Node(node_id)
 
 #removes a node from Chord
 def leave_handler(node_id):

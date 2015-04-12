@@ -24,10 +24,10 @@ class Node:
 		#node 0 will be initialized with all keys
 		if node_id is 0:
 			for x in range(0, 256):
-				myNode.keys[x] = 1
+				self.keys[x] = 1
 			for x in range(0, 8):
-				myNode.ft[x] = node_id
-			myNode.predecessor = node_id
+				self.ft[x] = node_id
+			self.predecessor = node_id
 
 		else:
 			# setup connection
