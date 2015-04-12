@@ -23,8 +23,9 @@ def nodeThread(conn, unique):
 
 		#if registration message, indicate sender node as active
 		if(buf[0] == "registration"):
-			if(active_nodes[buf[1]] == 0):
-				active_nodes[buf[1]] = 1
+			if(globals.active_nodes[buf[1]] == 0):
+				globals.active_nodes[buf[1]] = 1
+				sock[buf[1]] = conn
 		
 #receives connection from the nodes
 def server():
@@ -50,7 +51,6 @@ def server():
 		conn, addr = s_server.accept()
 		print 'Connected With '  + addr[0] + ':' + str(addr[1])
 		thread.start_new_thread(nodeThread, (conn, str(addr[1])))
-
 
 	conn.close()
 	s_server.close()
