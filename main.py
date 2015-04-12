@@ -10,8 +10,8 @@ import random
 from collections import deque
 
 #my imports
-import node.py
-import globals.py
+import node
+import globals
 
 #communicates with the connected node
 def nodeThread(conn, unique):
@@ -28,14 +28,14 @@ def nodeThread(conn, unique):
 		
 #receives connection from the nodes
 def server():
-	global s_server, server_port, sock, server_ip, num_clients
+	global s_server, server_port, sock, num_clients
 	s_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 	server_port = 8000
 
 	try: # setup server socket
 		s_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		s_server.bind((server_ip, int(server_port)))
+		s_server.bind((globals.coord_ip, int(server_port)))
 	
 	# if server setup fail
 	except socket.error , msg:
@@ -67,7 +67,9 @@ def coordinator():
 		elif cmd[0] == "leave" and cmd[1] != None:
 			leave_handler(cmd[1])
 		elif cmd[0] == "show" and cmd[1] != None:
+			pass
 		elif cmd[0] == "show" and cmd[1] == "all":
+			pass
 		else:
 			print 'invalid Input'
 #adds a node to Chord
@@ -120,22 +122,12 @@ def main():
 	globals.init()
 
 	# thread for receiving instructions
-	coordinator = threading.Thread(target=Coordinator, args = ())
-	coordinator.start()
+	coord_thread = threading.Thread(target=coordinator, args = ())
+	coord_thread.start()
 
 	#thread for intializing the coordinator to talk with nodes
-	server = threading.Thread(target=server, args=(server_ip))
-	server.start()
-
-	#initialize node 0
-	node.create_node(node_id)
+	server_thread = threading.Thread(target=server, args=())
+	server_thread.start()
 
 #execution starts here
 main()
-
-
-
-
-
-
-
