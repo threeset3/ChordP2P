@@ -79,8 +79,9 @@ def join_handler(node_id):
 		print("node already in Chord!\n")
 		return
 
-	#tell this node to add itself to Chord
-	node.create_node(node_id)
+	#create a thread representing the node
+	node_t= threading.Thread(target=node.nodeThread, args = (node_id, "join"))
+	node_t.start()
 
 #removes a node from Chord
 def leave_handler(node_id):
