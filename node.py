@@ -33,7 +33,7 @@ class Node:
 			self.init_base()
 
 			#send message to node 0 to help find myNode find its predecessor
-			self.sock[0].sendall("find_successor " + str(self.node_id))
+			self.sock[0].send("find_successor " + str(self.node_id))
 			#1. initialize the finger table
 			#2. initialize predecessor
 			#3. Update the predecessor of existing nodes
@@ -53,7 +53,7 @@ class Node:
 		try:
 			self.sock[0] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		except socket.error, msg:
-			print 'Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]
+			print 'Failed to create socket. Error code: ' + str(msg[0]) + ' ' + str(msg[1])
 			sys.exit();
 		
 		try:
@@ -61,6 +61,9 @@ class Node:
 		except socket.error, msg:
 			print 'Failed to connect socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]
 			sys.exit();
+
+		self.sock[0].send("registration " + str(self.node_id))
+		print '[Node %d] Connected to node 0.\n' % self.node_id
 
 	#setup a connection to coordinator
 	def init_coord(self):
@@ -76,7 +79,7 @@ class Node:
 		print 'Socket Connected to ' + globals.coord_ip
 
 		#register client to the server
-		if(self.coord.sendall("registration " + str(self.node_id))==None):
+		if(self.coord.send("registration " + str(self.node_id))==None):
 			print '%s connected to server' % self.node_id
 		else:
 			print 'client registration incomplete'
@@ -104,6 +107,9 @@ class Node:
 			#if node 0 asked to find a node's successor
 			if(buf[0] == "find_successor"):
 				self.find_successor(buf[1])
+			elif(buf[0]  == "registration"):
+				print buf
+				print '[Node %d] Connection identified as %s\n' % (self.node_id, buf[1])
 
 	#receives connection from other nodes
 	def serverThread(self):
@@ -118,21 +124,20 @@ class Node:
 			print '[[ Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1] + ' ]]'
 			sys.exit()
 
-		print 'Socket bind complete.'
+		print '[Node %d] Socket bind complete.\n' % self.node_id
 		s_server.listen(32)
-		print 'Socket listening..'
+		print '[Node %d] Socket listening..\n' % self.node_id
 
 		while(globals.keep_alive):
 			conn, addr = s_server.accept()
-			print 'Connected With '  + addr[0] + ':' + str(addr[1])
+			print '[Node %d] Connected\n' % self.node_id
 			thread.start_new_thread(self.recvThread, (conn,))
 
 		conn.close()
 		s_server.close()
 
 	def find_successor(self, req_node):
-		print "yay"
-		pass
+		print '[Node %d] find_successor(%s) called.\n' % (self.node_id, req_node)
 		#
 	def find_predecessor(self, node_id):
 		pass

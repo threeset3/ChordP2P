@@ -86,13 +86,13 @@ def server():
 		print '[[ Bind failed. Error Code: ' + str(msg[0]) + ' Message ' + msg[1] + ' ]]'
 		sys.exit()
 
-	print 'Socket bind complete.'
+	print '[Coord] Socket bind complete.\n'
 	s_server.listen(32)
-	print 'Socket listening..'
+	print '[Coord] Socket listening on ' + str(globals.coord_port)
 
 	while(globals.keep_alive):
 		conn, addr = s_server.accept()
-		print 'Connected With '  + addr[0] + ':' + str(addr[1])
+		print '[Coord_server] Connected With\n'  + addr[0] + ':' + str(addr[1])
 		thread.start_new_thread(recvThread, (conn, str(addr[1])))
 
 	conn.close()
