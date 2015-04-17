@@ -17,7 +17,6 @@ class Node:
 	sock = [None] * 8
 	predecessor = None
 	coord = None
-	response = None
 	# join()
 	def __init__(self, node_id):
 		self.node_id = node_id
@@ -68,7 +67,6 @@ class Node:
 	#setup a connection to coordinator
 	def init_coord(self):
 		#setup connection to coordinator
-		print "about to connect"
 		try:
 			#create an AF_INET, STREAM socket (TCP)
 			self.coord = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -86,7 +84,7 @@ class Node:
 
 		#register client to the server
 		if(self.coord.sendall("registration " + str(self.node_id))==None):
-			print '%s connected to server' % self.node_id
+			print '[Node %s] connected to coordinator' % self.node_id
 		else:
 			print 'client registration incomplete'
 
@@ -114,11 +112,9 @@ class Node:
 	def recvThread(self, conn):
 		#continuously receive data from the nodes
 		while(1):
-			self.response = conn.recv(1024)
-
-			print self.response
+			data = conn.recv(1024)
 			
-			buf = self.response.split(' ')
+			buf = data.split(' ')
 			#if node 0 asked to find a node's successor
 			if(buf[0]  == "registration"):
 				print '[Node %d] Connection identified as %s\n' % (self.node_id, buf[1])
