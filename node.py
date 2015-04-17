@@ -11,7 +11,7 @@ import math
 import globals
 
 class Node:
-	keys = [None] * 256
+	keys = []
 	ft = [None] * 8
 	num_ft = 0
 	sock = [None] * 256
@@ -22,7 +22,7 @@ class Node:
 		self.node_id = node_id
 		#node 0 will be initialized with all keys
 		if node_id is 0:
-			self.keys = [1] * 256
+			self.keys = range(256)
 			self.ft = [node_id] * 8
 			self.predecessor = node_id
 
@@ -81,11 +81,16 @@ class Node:
 
 		print 'Socket Connected to coordinator\n'
 
-		#register client to the server
+		#register client to the coordinator
 		if(self.coord.sendall("registration " + str(self.node_id))==None):
 			print '[Node %s] connected to coordinator' % self.node_id
 		else:
 			print 'client registration incomplete'
+
+		#server thread - receives messages from the coordinator
+		server_t=threading.Thread(target = self.coord_recvThread, args = ())
+		server_t.start()
+
 
 	#build the finger table of node req_node
 	def init_finger_table(self, req_node):
@@ -98,6 +103,8 @@ class Node:
 		for x in range(1, self.num_ft):
 			try:
 				#create an AF_INET, STREAM socket (TCP)
+				if(self.sock[x] != None):
+					continue
 				self.sock[x] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			except socket.error, msg:
 				print 'Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1] + '\n'
@@ -106,6 +113,15 @@ class Node:
 			node_port = globals.port + self.ft[x] + 1
 			self.sock[x].connect(globals.coord_ip, node_port)
 			print 'Socket Connected to node' + self.ft[x]		
+	def coord_recvThread(self):
+		while(1):
+			data = self.coord.recv(1024)
+			buf = data.split(' ')
+			if(buf[0]=="show-all"):
+				print '[Node %d] FINGER TABLE:\n' %self.node_id
+				print self.ft
+				print '[Node %d] KEYS:\n' %self.node_id
+				print self.keys
 
 	#receives messages from other nodes
 	def recvThread(self, conn):
@@ -168,10 +184,10 @@ class Node:
 		req_ft[0] =  successor
 
 		#tell successor that I'm your predecessor
-		if(successor == 0):
-			self.predecessor = req_node
-		else:
-			self.sock[successor].sendall("your_predecessor " + req_node)
+		#if(successor == 0):
+			#self.predecessor = req_node
+		#else:
+			#self.sock[successor].sendall("your_predecessor " + req_node)
 
 		#build the rest of the finger table
 		for i in range(0, 7):

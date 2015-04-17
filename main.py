@@ -28,7 +28,7 @@ def recvThread(conn, unique):
 				globals.active_nodes[new_node] = 1
 				globals.sock[new_node] = conn
 				print '[Coord] Marking node %d as active\n' % new_node
-		
+
 #adds a node to Chord
 def join_handler(node_id):
 	#check if the node already exists
@@ -74,7 +74,12 @@ def find_handler(node_id, key_id):
 	except socket.error , msg2:
 		print '[[ Send failed : ' + str(msg2[0]) + ' Message ' + msg2[1] + ' ]]' + '\n'
 		sys.exit()
-
+def show_all_handler():
+	for x in range(0, 256):
+		if(globals.sock[x] == None):
+			continue
+		print '[Coord] sending show-all command to %d\n' %x
+		globals.sock[x].sendall("show-all")
 #receives connection from the nodes
 def server():
 	global s_server, server_port, sock, num_clients
@@ -128,9 +133,9 @@ def main():
 			find_handler(cmd[1], cmd[2])
 		elif cmd[0] == "leave" and cmd[1] != None:
 			leave_handler(cmd[1])
-		elif cmd[0] == "show" and cmd[1] != None:
-			pass
 		elif cmd[0] == "show" and cmd[1] == "all":
+			show_all_handler()
+		elif cmd[0] == "show" and cmd[1] != None:
 			pass
 		elif cmd[0] == "quit":
 			break;
