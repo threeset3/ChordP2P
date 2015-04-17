@@ -102,7 +102,7 @@ class Node:
 			buf = data.split(' ')
 			#if new node joined, node_0 will help create its finger table
 			if(buf[0]  == "registration"):
-				print buf+'\n'
+				print buf
 				new_node = int(buf[1])
 				print '[Node %d] Connection identified as %s\n' % (self.node_id, buf[1])
 				self.init_finger_table(new_node)
@@ -140,14 +140,14 @@ class Node:
 			print 'client registration incomplete\n'
 
 	#build the finger table of node req_node
-	def init_finger_table(req_node):
+	def init_finger_table(self,req_node):
 		#node_0 builds req_node's ft and sends it back in message format
 		req_ft = [None]*8
 
-		req_ft[0] = find_successor(req_node+1)
+		req_ft[0] = self.find_successor(req_node+1)
 	def find_successor(self, req_node):
 		print '[Node %d] find_successor(%s) called.\n' % (self.node_id, req_node)
-		pred = find_predecessor(req_node)
+		pred = self.find_predecessor(req_node)
 	
 	def find_predecessor(self, req_node):
 		node = self.node_id
