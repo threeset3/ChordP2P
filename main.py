@@ -27,24 +27,25 @@ def recvThread(conn, unique):
 			if(globals.active_nodes[new_node] == 0):
 				globals.active_nodes[new_node] = 1
 				globals.sock[new_node] = conn
-				print '[coord] marking node_%d as active\n' %new_node
+				print '[Coord] Marking node %d as active\n' % new_node
 		
 #adds a node to Chord
 def join_handler(node_id):
 	#check if the node already exists
 	if(globals.active_nodes[node_id]):
-		print("node already in Chord!\n")
+		print("Node already in Chord!\n")
 		return
 
 	#create a thread representing the node
 	myNode = Node(node_id)
+	globals.active_nodes[node_id] = True
 
 #removes a node from Chord
 def leave_handler(node_id):
 
 	#check if the node exists
 	if(globals.active_nodes[node_id] == 0):
-		print("node doesn't exist!\n")
+		print("Node doesn't exist!\n")
 		return
 
 	#tell node_id to remove itself from Chord
@@ -85,12 +86,13 @@ def server():
 	
 	# if server setup fail
 	except socket.error , msg:
-		print '[[ Bind failed. Error Code: ' + str(msg[0]) + ' Message ' + msg[1] + ' ]]'+'\n'
+		print '[[ Bind failed. Error Code: ' + str(msg[0]) + ' Message ' + msg[1] + ' ]]' + '\n'
 		sys.exit()
 
 	print '[Coord] Socket bind complete.\n'
 	s_server.listen(32)
-	print '[Coord] Socket listening on ' + str(globals.coord_port) + '\n'
+	print '[Coord] Socket listening on ' + str(globals.coord_port)
+	globals.coord_initialized = 1;
 
 	while(1):
 		conn, addr = s_server.accept()
@@ -98,7 +100,6 @@ def server():
 		recv_t = threading.Thread(target=recvThread, args=(conn, str(addr[1]),))
 		recv_t.setDaemon(True)
 		recv_t.start()
-
 
 	conn.close()
 	s_server.close()
@@ -111,6 +112,9 @@ def main():
 	server_thread = threading.Thread(target=server, args=())
 	server_thread.setDaemon(True)
 	server_thread.start()
+
+	while(not globals.coord_initialized):
+		pass
 
 	# set up node 0
 	join_handler(0);
@@ -135,7 +139,8 @@ def main():
 		else:
 			print 'invalid Input'
 
-	#sys.exit()
+	server_thread.join()
+	sys.exit()
 	
 
 #execution starts here
