@@ -92,11 +92,7 @@ class Node:
 		server_t.start()
 
 
-	#build the finger table of node req_node
-	def init_finger_table(self, req_node):
-		#node_0 builds req_node's ft and sends it back in message format
-		req_ft = [None]*8
-		req_ft[0] = self.find_sucessor(req_node+1)
+
 
 	def conn_finger_table(self):
 		#setup connection to nodes in fingertable
@@ -117,11 +113,15 @@ class Node:
 		while(1):
 			data = self.coord.recv(1024)
 			buf = data.split(' ')
-			if(buf[0]=="show-all"):
+			if(buf[0]=="show"):
 				print '[Node %d] FINGER TABLE:\n' %self.node_id
 				print self.ft
 				print '[Node %d] KEYS:\n' %self.node_id
 				print self.keys
+
+				print buf
+				if buf[1] == "all" and self.ft[0] != 0:
+					self.sock[ft[0]].sendall("show all")
 
 	#receives messages from other nodes
 	def recvThread(self, conn):
@@ -142,6 +142,14 @@ class Node:
 				conn.sendall(msg)
 			elif(buf[0] == "your_predecessor"):
 				self.predecessor = int(buf[1])
+
+			if(buf[0]=="show"):
+				print '[Node %d] FINGER TABLE:\n' %self.node_id
+				print self.ft
+				print '[Node %d] KEYS:\n' %self.node_id
+
+				if self.ft[0] != 0:
+					self.sock[ft[0]].sendall("show all")
 
 	#receives connection from other nodes
 	def serverThread(self):
@@ -184,10 +192,10 @@ class Node:
 		req_ft[0] =  successor
 
 		#tell successor that I'm your predecessor
-		#if(successor == 0):
-			#self.predecessor = req_node
-		#else:
-			#self.sock[successor].sendall("your_predecessor " + req_node)
+		if(successor == 0):
+			self.predecessor = req_node
+		else:
+			self.sock[successor].sendall("your_predecessor " + req_node)
 
 		#build the rest of the finger table
 		for i in range(0, 7):

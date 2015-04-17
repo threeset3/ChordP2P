@@ -74,12 +74,15 @@ def find_handler(node_id, key_id):
 	except socket.error , msg2:
 		print '[[ Send failed : ' + str(msg2[0]) + ' Message ' + msg2[1] + ' ]]' + '\n'
 		sys.exit()
-def show_all_handler():
-	for x in range(0, 256):
-		if(globals.sock[x] == None):
-			continue
-		print '[Coord] sending show-all command to %d\n' %x
-		globals.sock[x].sendall("show-all")
+def show_handler(node):
+	if node is "all":
+		print '[Coord] sending show-all command to 0\n'
+		globals.sock[0].sendall("show all")
+	else:
+		if(globals.sock[node] != None):
+			print '[Coord] sending show-all command to %d\n' %node
+			globals.sock[node].sendall("show you")
+
 #receives connection from the nodes
 def server():
 	global s_server, server_port, sock, num_clients
@@ -134,9 +137,9 @@ def main():
 		elif cmd[0] == "leave" and cmd[1] != None:
 			leave_handler(cmd[1])
 		elif cmd[0] == "show" and cmd[1] == "all":
-			show_all_handler()
+			show_handler("all")
 		elif cmd[0] == "show" and cmd[1] != None:
-			pass
+			show_handler(int(cmd[1]))
 		elif cmd[0] == "quit":
 			break;
 		elif cmd[0] == "":
