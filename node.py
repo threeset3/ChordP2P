@@ -17,7 +17,7 @@ class Node:
 	sock = [None] * 8
 	predecessor = None
 	coord = None
-
+	response = None
 	# join()
 	def __init__(self, node_id):
 		self.node_id = node_id
@@ -112,13 +112,14 @@ class Node:
 	def recvThread(self, conn):
 		#continuously receive data from the nodes
 		while(1):
-			data = conn.recv(1024)
+			self.response = conn.recv(1024)
 		
-			buf = data.split(' ')
+			buf = self.response.split(' ')
 			#if node 0 asked to find a node's successor
 			if(buf[0]  == "registration"):
 				print '[Node %d] Connection identified as %s\n' % (self.node_id, buf[1])
 				self.find_successor(buf[1])
+			if(buf[0] == "")
 
 	#receives connection from other nodes
 	def serverThread(self):
@@ -145,12 +146,34 @@ class Node:
 		conn.close()
 		s_server.close()
 
+	#build the finger table of node req_node
+	def init_finger_table(self,req_node):
+		#node_0 builds req_node's ft and sends it back in message format
+		req_ft = [None]*8
+
+		req_ft[0] = self.find_successor(req_node+1)
 	def find_successor(self, req_node):
 		print '[Node %d] find_successor(%s) called.\n' % (self.node_id, req_node)
+		pred = self.find_predecessor(req_node)
+	
+	def find_predecessor(self, req_node):
+		node = self.node_id
 
+		if(req_node > self.node_id and req_node <= self.ft[0]):
+			return node
+		else:
+			node = self.closest_preceding_finger(req_node)
+			self.sock[node].sendall("predecessor "+str(req_node))
+			#get the response
+			data = self.sock[node].recv(1024)
+		return node
 
-	def find_predecessor(self, node_id):
-		pass
+	#returns the node preceding req_node
+	def closest_preceding_finger(self, req_node):
+		for x in list(reversed(range(8))):
+			if(self.ft[x] > self.node_id and self.ft[x] < req_node):
+				return self.ft[x]
+		return self.node_id
 
 	#this function removes node with the id "node_id" from the system
 	def remove_node(self, node_id):
