@@ -6,7 +6,7 @@ import time
 import datetime
 import random
 from collections import deque
-
+import math
 #my imports
 import globals
 
@@ -14,13 +14,12 @@ class Node:
 	keys = [None] * 256
 	ft = [None] * 8
 	num_ft = 0
-	sock = [None] * 8
+	sock = [None] * 256
 	predecessor = None
 	coord = None
 	# join()
 	def __init__(self, node_id):
 		self.node_id = node_id
-
 		#node 0 will be initialized with all keys
 		if node_id is 0:
 			self.keys = [1] * 256
@@ -60,9 +59,9 @@ class Node:
 			sys.exit();
 
 		self.sock[0].sendall("registration " + str(self.node_id))
+		print '[Node %d] Connected to node 0.\n' % self.node_id
 		msg = self.sock[0].recv(1024)
 		print msg
-		print '[Node %d] Connected to node 0.\n' % self.node_id
 
 	#setup a connection to coordinator
 	def init_coord(self):
@@ -118,12 +117,15 @@ class Node:
 			#if node 0 asked to find a node's successor
 			if(buf[0]  == "registration"):
 				print '[Node %d] Connection identified as %s\n' % (self.node_id, buf[1])
+				self.sock[int(buf[1])] = conn
 				newinfo = self.init_finger_table(int(buf[1]))
 				conn.sendall(newinfo)
 
-			elif(buf[0] == "predecessor"):
+			elif(buf[0] == "find_predecessor"):
 				msg = self.find_predecessor(int(buf[1]))
 				conn.sendall(msg)
+			elif(buf[0] == "your_predecessor"):
+				self.predecessor = int(buf[1])
 
 	#receives connection from other nodes
 	def serverThread(self):
@@ -161,8 +163,28 @@ class Node:
 		msg = msg.split(' ')
 		# msg will contain "PRD SUCC"
 
-		predecssor = msg[0]
-		req_ft[0] =  msg[1] # successor
+		predecssor = int(msg[0])
+		successor = int(msg[1])
+		req_ft[0] =  successor
+
+		#tell successor that I'm your predecessor
+		if(successor == 0):
+			self.predecessor = req_node
+		else:
+			self.sock[successor].sendall("your_predecessor " + req_node)
+
+		#build the rest of the finger table
+		for i in range(0, 7):
+			finger_id = req_node+math.pow(2, i+1)
+			print 'FINGER ID: %d\n' %finger_id 
+			if(finger_id > self.node_id and finger_id <= self.ft[i]):
+				print 'No need to call find_successor\n'
+				req_ft[i+1] = self.ft[i]
+			else:
+				msg = self.find_successor(finger_id)
+				msg = msg.split(' ')
+				req_ft[i+1] = msg[1]
+		#send back whole table back to requesting node
 		return (" ".join(str(e) for e in req_ft))
 
 	def find_successor(self, req_node):
@@ -175,13 +197,15 @@ class Node:
 
 		node = self.node_id
 
-		if(self.node_id == self.ft[0]):
+		if(self.node_id == self.ft[0] and self.node_id==self.predecessor):
 			return str('0 0')
 		elif(req_node > self.node_id and req_node <= self.ft[0]):
 			return str(node + ' ' + self.ft[0])
 		else:
 			node = self.closest_preceding_finger(req_node)
-			self.sock[node].sendall("predecessor "+str(req_node))
+			print 'closest_preceding_finger: %d\n' %node
+
+			self.sock[node].sendall("find_predecessor "+str(req_node))
 			#get the response
 			data = self.sock[node].recv(1024)
 			return data
