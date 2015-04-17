@@ -63,6 +63,21 @@ class Node:
 		msg = self.sock[0].recv(1024)
 		print msg
 
+	def coord_recvThread(self):
+		while(1):
+			data = self.coord.recv(1024)
+			buf = data.split(' ')
+			if(buf[0]=="show"):
+				print '[Node %d] FINGER TABLE:\n' %self.node_id
+				print self.ft
+				print '[Node %d] KEYS:\n' %self.node_id
+				print self.keys
+
+				print buf
+				#waterfall
+				if buf[1] == "all" and self.ft[0] != 0:
+					self.sock[ft[0]].sendall("show all")
+
 	#setup a connection to coordinator
 	def init_coord(self):
 		#setup connection to coordinator
@@ -79,8 +94,6 @@ class Node:
 			print 'Failed to connect socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1] + '\n'
 			sys.exit();
 
-		print 'Socket Connected to coordinator\n'
-
 		#register client to the coordinator
 		if(self.coord.sendall("registration " + str(self.node_id))==None):
 			print '[Node %s] connected to coordinator' % self.node_id
@@ -91,37 +104,23 @@ class Node:
 		server_t=threading.Thread(target = self.coord_recvThread, args = ())
 		server_t.start()
 
-
-
-
 	def conn_finger_table(self):
 		#setup connection to nodes in fingertable
-		for x in range(1, self.num_ft):
+		for x in range(0, 256):
 			try:
 				#create an AF_INET, STREAM socket (TCP)
-				if(self.sock[x] != None):
+				if(self.sock[x] != None or self.ft[x]==None or self.ft[x] == self.node_id):
+					print '[conn_finger_table] Already filled in\n'
 					continue
 				self.sock[x] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			except socket.error, msg:
 				print 'Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1] + '\n'
 				sys.exit();
-			#node port num = 8000 + node_id
-			node_port = globals.port + self.ft[x] + 1
-			self.sock[x].connect(globals.coord_ip, node_port)
-			print 'Socket Connected to node' + self.ft[x]		
-	def coord_recvThread(self):
-		while(1):
-			data = self.coord.recv(1024)
-			buf = data.split(' ')
-			if(buf[0]=="show"):
-				print '[Node %d] FINGER TABLE:\n' %self.node_id
-				print self.ft
-				print '[Node %d] KEYS:\n' %self.node_id
-				print self.keys
 
-				print buf
-				if buf[1] == "all" and self.ft[0] != 0:
-					self.sock[ft[0]].sendall("show all")
+			node_port = globals.coord_port + self.ft[x] + 1
+			print '[conn_finger_table] connecting to %d\n'%self.ft[x]
+			self.sock[x].connect((globals.coord_ip, node_port))
+			print '[Node %d] Connected to Node_%d' %(self.node_id, self.ft[x])		
 
 	#receives messages from other nodes
 	def recvThread(self, conn):
@@ -135,7 +134,10 @@ class Node:
 				print '[Node %d] Connection identified as %s\n' % (self.node_id, buf[1])
 				self.sock[int(buf[1])] = conn
 				newinfo = self.init_finger_table(int(buf[1]))
-				conn.sendall(newinfo)
+				if(conn.sendall(newinfo)==None):
+					print '[node 0]finger table sent to Node_%d\n'%int(buf[1])
+				else:
+					print '[ERROR] Node 0 failed to send finger table to Node_%d\n'%int(buf[1])
 
 			elif(buf[0] == "find_predecessor"):
 				msg = self.find_predecessor(int(buf[1]))
@@ -187,7 +189,8 @@ class Node:
 		msg = msg.split(' ')
 		# msg will contain "PRD SUCC"
 
-		predecssor = int(msg[0])
+		print msg
+		predecessor = int(msg[0])
 		successor = int(msg[1])
 		req_ft[0] =  successor
 
@@ -196,6 +199,8 @@ class Node:
 			self.predecessor = req_node
 		else:
 			self.sock[successor].sendall("your_predecessor " + req_node)
+		if(predecessor==0):
+			self.ft[0] = req_node
 
 		#build the rest of the finger table
 		for i in range(0, 7):
@@ -214,17 +219,25 @@ class Node:
 	def find_successor(self, req_node):
 		print '[Node %d] find_successor(%s) called.\n' % (self.node_id, req_node)
 		msg = self.find_predecessor(req_node)
+
+		print 'find_successor returning:' + msg
 		return msg
 	
 	def find_predecessor(self, req_node):
 		print '[Node %d] find_predecessor(%s) called.\n' % (self.node_id, req_node)
-
+		print 'PRINTING FT YO\n'
+		print self.ft
 		node = self.node_id
 
 		if(self.node_id == self.ft[0] and self.node_id==self.predecessor):
 			return str('0 0')
 		elif(req_node > self.node_id and req_node <= self.ft[0]):
+			print 'find_pred returning1:' + str(node + ' ' + self.ft[0]) + '\n'
 			return str(node + ' ' + self.ft[0])
+		#self is the current biggest node
+		elif(self.ft[0]==0):
+			print'Node_%d is the biggest NODE\n' %self.node_id
+			return (str(self.node_id) + " 0")
 		else:
 			node = self.closest_preceding_finger(req_node)
 			print 'closest_preceding_finger: %d\n' %node
@@ -232,8 +245,10 @@ class Node:
 			self.sock[node].sendall("find_predecessor "+str(req_node))
 			#get the response
 			data = self.sock[node].recv(1024)
-			return data
 
+			print 'find_pred returning2:' + data + '\n'
+			return data
+		return "100 100"
 	#returns the node preceding req_node
 	def closest_preceding_finger(self, req_node):
 		for x in list(reversed(range(8))):
