@@ -61,6 +61,8 @@ class Node:
 			sys.exit();
 
 		self.sock[0].sendall("registration " + str(self.node_id))
+		msg = self.sock[0].recv(1024)
+		print msg
 		print '[Node %d] Connected to node 0.\n' % self.node_id
 
 	#setup a connection to coordinator
@@ -113,13 +115,19 @@ class Node:
 		#continuously receive data from the nodes
 		while(1):
 			self.response = conn.recv(1024)
-		
+
+			print self.response
+			
 			buf = self.response.split(' ')
 			#if node 0 asked to find a node's successor
 			if(buf[0]  == "registration"):
 				print '[Node %d] Connection identified as %s\n' % (self.node_id, buf[1])
-				self.find_successor(buf[1])
-			if(buf[0] == "")
+				newinfo = self.init_finger_table(int(buf[1]))
+				conn.sendall(newinfo)
+
+			elif(buf[0] == "predecessor"):
+				msg = self.find_predecessor(int(buf[1]))
+				conn.sendall(msg)
 
 	#receives connection from other nodes
 	def serverThread(self):
@@ -148,25 +156,39 @@ class Node:
 
 	#build the finger table of node req_node
 	def init_finger_table(self,req_node):
+		print '[Node %d] find_init_finger_table(%s) called.\n' % (self.node_id, req_node)
+
 		#node_0 builds req_node's ft and sends it back in message format
 		req_ft = [None]*8
 
-		req_ft[0] = self.find_successor(req_node+1)
+		msg = self.find_successor(req_node+1)
+		msg = msg.split(' ')
+		# msg will contain "PRD SUCC"
+
+		predecssor = msg[0]
+		req_ft[0] =  msg[1] # successor
+		return (" ".join(str(e) for e in req_ft))
+
 	def find_successor(self, req_node):
 		print '[Node %d] find_successor(%s) called.\n' % (self.node_id, req_node)
-		pred = self.find_predecessor(req_node)
+		msg = self.find_predecessor(req_node)
+		return msg
 	
 	def find_predecessor(self, req_node):
+		print '[Node %d] find_predecessor(%s) called.\n' % (self.node_id, req_node)
+
 		node = self.node_id
 
-		if(req_node > self.node_id and req_node <= self.ft[0]):
-			return node
+		if(self.node_id == self.ft[0]):
+			return str('0 0')
+		elif(req_node > self.node_id and req_node <= self.ft[0]):
+			return str(node + ' ' + self.ft[0])
 		else:
 			node = self.closest_preceding_finger(req_node)
 			self.sock[node].sendall("predecessor "+str(req_node))
 			#get the response
 			data = self.sock[node].recv(1024)
-		return node
+			return data
 
 	#returns the node preceding req_node
 	def closest_preceding_finger(self, req_node):
