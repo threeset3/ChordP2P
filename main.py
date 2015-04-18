@@ -18,7 +18,6 @@ def recvThread(conn, unique):
 	#continuously receive data from the nodes
 	while(1):
 		data = conn.recv(1024)
-		
 		buf = data.split(' ')
 
 		#if registration message, indicate sender node as active
@@ -146,7 +145,7 @@ def main():
 			pass
 		else:
 			print 'invalid Input'
-
+	print '[Coord] I FUCKING QUIT!\n'
 	server_thread.join()
 	sys.exit()
 	
