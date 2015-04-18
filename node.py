@@ -7,8 +7,10 @@ import datetime
 import random
 from collections import deque
 import math
+
 #my imports
 import globals
+
 class Node:
 	# join()
 	def __init__(self, node_id):
@@ -42,7 +44,7 @@ class Node:
 		if self.node_id is 0:
 
 			self.key_start = 0
-			self.key_end = 255
+			self.key_end = 256
 			self.ft = [0] * 8
 			self.predecessor = self.node_id
 			self.build_done = 1
@@ -101,6 +103,7 @@ class Node:
 			if req_ft[x-1] == 0:
 				self.sock[0] = self.node0
 		self.predecessor = int(req_ft[9])
+		self.update_keys()
 		print '[Node %d] New Finger Table by Builder is: '%self.node_id
 		print self.ft
 		print '\n'
@@ -216,6 +219,7 @@ class Node:
 			elif(buf[0] == "your_predecessor"):
 				print '[Node %d] my old predecessor is: %d\n'%(self.node_id, self.predecessor)
 				self.predecessor = int(buf[1])
+				self.update_keys()
 				print '[Node %d] my new predecessor is: %d\n'%(self.node_id, self.predecessor)
 
 			#---------------REQUEST - node is told what its succesor is---------
@@ -238,9 +242,11 @@ class Node:
 			if(buf[0]=="show"):
 				print '[Node %d] FINGER TABLE:\n' %self.node_id
 				self.print_ft()
+				print self.predecessor
 				print '[Node %d] KEYS:\n' %self.node_id
+				self.print_keys()
 
-				if self.ft[0] != 0:
+				if buf[1] == "all" and self.ft[0] != 0:
 					self.sock[self.ft[0]].sendall("show all")
 
 	#receives connection from other nodes
@@ -310,6 +316,7 @@ class Node:
 		#tell successor that req_node is its predecessor
 		if(successor == 0):
 			self.predecessor = req_node
+			self.update_keys()
 		else:
 			self.sock[successor].sendall("your_predecessor " + str(req_node))
 		#tell predecessor that req_node is its successor
@@ -392,6 +399,25 @@ class Node:
 		#somehow find the key
 	def print_ft(self):
 		print self.ft
-		print self.ft[0]
 		print '\n'
+	def print_keys(self):
+		s = []
+		for x in range(self.key_start, self.key_end):
+			s.append(x)
+		key_list = (" ".join(str(e) for e in s))
+		print key_list
+
+	def update_keys(self):
+		if(self.node_id == self.predecessor):
+			return
+
+		self.key_start = self.predecessor+1
+		self.key_end = self.node_id+1
+		if(self.node_id==0 and self.predecessor is not 0):
+			self.key_end = 256
+
+
+
+
+
 

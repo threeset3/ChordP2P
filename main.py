@@ -26,7 +26,9 @@ def recvThread(conn, unique):
 			if(globals.active_nodes[new_node] == 0):
 				globals.active_nodes[new_node] = 1
 				globals.sock[new_node] = conn
+				print '[Coord] Connected with node %d'%new_node
 				print '[Coord] Marking node %d as active\n' % new_node
+				print '[Coord] Can take new command now :)\n'
 
 #adds a node to Chord
 def join_handler(node_id):
@@ -79,7 +81,7 @@ def show_handler(node):
 		globals.sock[0].sendall("show all")
 	else:
 		if(globals.sock[node] != None):
-			print '[Coord] sending show-all command to %d\n' %node
+			print '[Coord] sending show command to %d\n' %node
 			globals.sock[node].sendall("show you")
 
 #receives connection from the nodes
@@ -103,7 +105,6 @@ def server():
 
 	while(1):
 		conn, addr = s_server.accept()
-		print '[Coord] Connected With '  + addr[0] + ':' + str(addr[1]) + '\n'
 		recv_t = threading.Thread(target=recvThread, args=(conn, str(addr[1]),))
 		recv_t.setDaemon(True)
 		recv_t.start()
