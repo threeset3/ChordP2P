@@ -121,7 +121,6 @@ class Node:
 		server_t=threading.Thread(target = self.recvThread, args = (self.coord,))
 		server_t.start()
 
-	#BUGGY - how to map ft to socks
 	def conn_finger_table(self):
 		#setup connection to nodes in fingertable
 		for x in range(0, 8):
@@ -199,7 +198,7 @@ class Node:
 				print '[Node %d] KEYS:\n' %self.node_id
 
 				if self.ft[0] != 0:
-					self.sock[ft[0]].sendall("show all")
+					self.sock[self.ft[0]].sendall("show all")
 
 	#receives connection from other nodes
 	def serverThread(self):
@@ -247,7 +246,7 @@ class Node:
 		if(successor == 0):
 			self.predecessor = req_node
 		else:
-			self.sock[successor].sendall("your_predecessor " + req_node)
+			self.sock[successor].sendall("your_predecessor " + str(req_node))
 		if(predecessor==0):
 			self.ft[0] = req_node
 
@@ -295,8 +294,8 @@ class Node:
 
 		elif(req_node > self.node_id and req_node <= self.ft[0]):
 			# n' < id <= n''s successor - case 2
-			print 'find_pred returning1:' + str(node + ' ' + self.ft[0]) + '\n'
-			retVal = str(node + ' ' + self.ft[0])
+			print 'find_pred returning1:' + str(node) + ' ' + str(self.ft[0]) + '\n'
+			retVal = str(node) + ' ' + str(self.ft[0])
 
 		elif(req_node > self.ft[0] and self.ft[0]==0):
 			#self is the current biggest node and req_node is the new biggest - case 3
@@ -307,7 +306,7 @@ class Node:
 			node = self.closest_preceding_finger(req_node)
 			print '[Node %d]closest_preceding_finger: %d\n' %(self.node_id, node)
 			self.reply_predecessor = 0
-			self.sock[node].send("find_predecessor "+str(req_node))
+			self.sock[node].send("find_predecessor "+str(int(req_node)))
 			print'[Node %d]sent find_predecessor request to node_%d\n' %(self.node_id, node)
 			
 			#wait for reply
