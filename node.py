@@ -388,7 +388,7 @@ class Node:
 		print '[Node %d] Updating others Yay! or Not\n'%self.node_id
 		for i in range(1, 8):
 			print 'IM HERE *************\n'
-			id = int(self.wrap(self.node_id - math.pow(2, i)))
+			id = int(self.wrap(self.node_id - math.pow(2, i)+1))
 			print '***id %d***\n'%id
 			pred_succ = self.find_predecessor(id)
 			print '[Node %d] predecessor for idx %d is\n'%(self.node_id,i) + str(pred_succ)
