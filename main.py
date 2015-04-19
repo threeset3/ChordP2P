@@ -24,16 +24,30 @@ def recvThread(conn, unique):
 		if(buf[0] == "registration"):
 			new_node = int(buf[1])
 			if(globals.active_nodes[new_node] == 0):
-				globals.active_nodes[new_node] = 1
 				globals.sock[new_node] = conn
 				print '[Coord] Connected with node %d'%new_node
+
+		elif(buf[0] == "join_finished"):
+			new_node = int(buf[1])
+			if(globals.active_nodes[new_node] == 0):
+				globals.active_nodes[new_node] = 1
 				print '[Coord] Marking node %d as active\n' % new_node
 				print '[Coord] Can take new command now :)\n'
-
 		#------Node requested coordinator to forward a message to a different node-----
 		elif(buf[0] == "forward_to"):
+			print '[Coord] received request to FORWARD: '
+			print buf
+			print '\n'
 			dest = int(buf[1])
 			msg = buf[2]+' '+buf[3] +' '+buf[4]
+			print '[Coord] Sending forward_to to node %d\n'%dest
+			globals.sock[dest].sendall(msg)
+		elif(buf[0] == "forward_predecesor_to"):
+			print '[Coord] received request to FORWARD find_predecessor: '
+			print buf
+			print '\n'
+			dest = int(buf[1])
+			msg = buf[2]+' '+buf[3]
 			globals.sock[dest].sendall(msg)
 
 #adds a node to Chord

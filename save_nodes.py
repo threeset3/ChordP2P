@@ -269,23 +269,20 @@ class Node:
 
 			if(req_ft[i] >= finger_id):
 				#successor(i+1) == successor(i)
-				print '[Node %d] successor(i+1) == successor(i) with finger_id %d and prev finger %d\n'%(self.node_id, finger_id, req_ft[i])
 				req_ft[i+1] = req_ft[i]
 			elif(finger_id <= 255 and req_ft[0] == 0):
 				#if finger_id is the current biggest key -then wrap back to node 0
-				print '[Node %d] case 2 successor(i+1) == successor(i)\n'%self.node_id
 				req_ft[i+1] = req_ft[i]
 
 			else: #finger_id > req_ft[i]
 				#successor(i+1) > successor(i)
-				print '[Node %d] successor(i+1) > successor(i)\n'%self.node_id
 				if(finger_id > 255): #wrap back
 					finger_id = finger_id -255
 
 				msg = self.find_successor(finger_id)
 				print msg
 				msg = msg.split(' ')
-				req_ft[i+1] = int(msg[1])
+				req_ft[i+1] = msg[1]
 
 		#tell successor that req_node is its predecessor
 		if(successor == 0):
