@@ -122,7 +122,7 @@ def find_handler(node_id, key_id):
 		print("Given node not in the system!\n")
 		return
 	#tell node_id to find key_id
-	msg = "Start"+ "find key_id" + "End"
+	msg = "Start"+ "find "+str(key_id) + "End"
 	try:
 		globals.sock[node_id].sendall(msg)
 	except socket.error , msg2:

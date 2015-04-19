@@ -264,6 +264,10 @@ class Node:
 					cmd = buf[1]
 					print '\n[Node %d]Received cmd show '%self.node_id + str(buf) + '\n'
 					self.show_handler(cmd)
+				elif(buf[0] == "find"):
+					key_to_find = int(buf[1])
+					self.find_handler(key_to_find)
+
 
 	#receives connection from other nodes
 	def serverThread(self):
@@ -566,11 +570,19 @@ class Node:
 			self.sock[self.ft[0]].sendall("Start"+"show all"+"End")
 		self.cmd_finished()
 
-
-
-
-
-
+	def find_handler(self, key_to_find):
+		#check if I have it
+		if(key_to_find >= self.key_start and key_to_find < self.key_end):
+			print '[Node %d] FOUND KEY! I have key %d\n'%(self.node_id, key_to_find)
+		else:
+			#if I don't, find the key's successor
+			result = self.find_successor(key_to_find)
+			
+			# msg will contain "PRD SUCC"
+			result= result.split(' ')
+			succ = int(result[1])
+			print '[Node %d] FOUND KEY! Node %d has the key %d\n'%(self.node_id, succ, key_to_find)
+		self.cmd_finished()
 
 
 
