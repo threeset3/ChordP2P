@@ -1,7 +1,7 @@
 #globals
 
 def init():
-	global nodes, coord_port, coord_ip, active_nodes, num_active, keep_alive, sock, coord_initialized, printing
+	global nodes, coord_port, coord_ip, active_nodes, num_active, keep_alive, sock, coord_initialized, printing, cmd_done
 
 	#stores the connection of nodes
 	sock = [None] * 256
@@ -11,3 +11,4 @@ def init():
 	num_active = 0
 	coord_initialized = 0
 	printing = 0
+	cmd_done = 1

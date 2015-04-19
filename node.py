@@ -30,7 +30,7 @@ class Node:
 		self.build_done = 0
 		#flag that indicates if query reply to find_predecessor has arrived
 		self.reply_predecessor=0
-		self.join_done = 0
+		self.cmd_done = 0
 		#buffer that contains "pred succ"
 		self.msg_predecessor = "OOHO"
 		
@@ -41,9 +41,9 @@ class Node:
 
 		self.init_coord()
 		self.join()
-		while(not self.join_done):
+		while(not self.cmd_done):
 			pass
-		self.join_finished()
+		self.cmd_finished()
 	def join(self):
 		#node 0 will be initialized with all keys
 		if self.node_id is 0:
@@ -64,13 +64,10 @@ class Node:
 			#4. Update the finger table of existing nodes
 			self.update_others()
 			#5. Transfer keys to node_id
-		self.join_done = 1
+		self.cmd_done = 1
 
-	def join_finished(self):
-		counter = 10
-		while(counter>0):
-			counter-=1
-		msg = "Start"+"join_finished "+ str(self.node_id)+"End"
+	def cmd_finished(self):
+		msg = "cmd_finished "+ str(self.node_id)
 		self.coord.sendall("Start"+msg+"End")
 	## initialize conneciton to 0th node
 	def init_base(self):
@@ -567,6 +564,7 @@ class Node:
 
 		if cmd == "all" and self.ft[0] != 0:
 			self.sock[self.ft[0]].sendall("Start"+"show all"+"End")
+		self.cmd_finished()
 
 
 

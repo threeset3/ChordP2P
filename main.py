@@ -52,12 +52,14 @@ def recvThread(conn, unique):
 					globals.sock[new_node] = conn
 					print '[Coord] Connected with node %d'%new_node
 
-			elif(buf[0] == "join_finished"):
+			elif(buf[0] == "cmd_finished"):
 				new_node = int(buf[1])
+				print '[Coord] Node %d done with operation\n'%new_node
 				if(globals.active_nodes[new_node] == 0):
 					globals.active_nodes[new_node] = 1
 					print '[Coord] Marking node %d as active\n' % new_node
-					print '[Coord] Can take new command now :)\n'
+				globals.cmd_done=1
+				print '[Coord] Can take new command now :)\n'
 			#------Node requested coordinator to forward a message to a different node-----
 			elif(buf[0] == "forward_to"):
 				#print '\n[Coord] received request to FORWARD: '
@@ -120,8 +122,7 @@ def find_handler(node_id, key_id):
 		print("Given node not in the system!\n")
 		return
 	#tell node_id to find key_id
-	msg = "find key_id"
-	globals.sock[node_id].sendall(msg)
+	msg = "Start"+ "find key_id" + "End"
 	try:
 		globals.sock[node_id].sendall(msg)
 	except socket.error , msg2:
@@ -180,28 +181,32 @@ def main():
 	join_handler(0);
 
 	while(1):
-		userInput = raw_input('>>> ');
-		cmd = userInput.split(' ');
-		if cmd[0] == "join" and cmd[1] != None:
-			join_handler(int(cmd[1]))
-		elif cmd[0] == "find" and cmd[1] != None and cmd[2] != None:
-			find_handler(cmd[1], cmd[2])
-		elif cmd[0] == "leave" and cmd[1] != None:
-			leave_handler(cmd[1])
-		elif cmd[0] == "show" and cmd[1] == "all":
-			show_handler("all")
-		elif cmd[0] == "show" and cmd[1] != None:
-			show_handler(int(cmd[1]))
-		elif cmd[0] == "quit":
-			break;
-		elif cmd[0] == "":
-			pass
-		else:
-			print 'invalid Input'
-	print '[Coord] I FUCKING QUIT!\n'
+		while(globals.cmd_done):
+			userInput = raw_input('>>> ');
+			cmd = userInput.split(' ');
+			if cmd[0] == "join" and cmd[1] != None:
+				globals.cmd_done=0
+				join_handler(int(cmd[1]))
+			elif cmd[0] == "find" and cmd[1] != None and cmd[2] != None:
+				globals.cmd_done=0
+				find_handler(int(cmd[1]), int(cmd[2]))
+			elif cmd[0] == "leave" and cmd[1] != None:
+				globals.cmd_done=0
+				leave_handler(cmd[1])
+			elif cmd[0] == "show" and cmd[1] == "all":
+				globals.cmd_done=0
+				show_handler("all")
+			elif cmd[0] == "show" and cmd[1] != None:
+				globals.cmd_done=0
+				show_handler(int(cmd[1]))
+			elif cmd[0] == "quit":
+				break;
+			elif cmd[0] == "":
+				pass
+			else:
+				print 'invalid Input'
 	server_thread.join()
 	sys.exit()
-	
-
+	print'[Coord] I quit\n'
 #execution starts here
 main()
