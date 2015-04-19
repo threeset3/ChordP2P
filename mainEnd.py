@@ -16,41 +16,35 @@ import globals
 #communicates with the connected node
 def recvThread(conn, unique):
 	#continuously receive data from the nodes
+	total_data=[]
 	while(1):
-		total_data=[]
-		end_idx = 0
-		#receive data
-		data = conn.recv(1024)
-		length = len(data)
-		#print "\n[Coord]data:" + data + '\n'
-		while end_idx < length:
-			if "Start" in data:
-				start_idx = data.find("Start")
-				end_idx = data.find("End")
-				total_data.append(data[start_idx+5:end_idx])
-				temp = data[end_idx+3:len(data)]
-				data = temp
-			else:
+
+		while True:
+			data = conn.recv(1024)
+			print "\n[Coord]data:" + data + '\n'
+			if "End" in data:
+				total_data.append(data[:data.find("End")])
+				print '\n[Coord] total_data:' + str(total_data) + '\n'
 				break
-			if len(total_data) > 1:
-				last_pair = total_data[-2] + total_data[-1]
-				if "End" in last_pair:
-					total_data[-2]=last_pair[:last_pair.find('End')]
-					total_data.pop()
-					break
-		#print '\n[Coord] all data separated:' + str(total_data) + '\n'
+			#if len(total_data) > 1:
+				#last_pair = total_data[-2] + total_data[-1]
+				#if "End" in last_pair:
+					#total_data[-2]=last_pair[:last_pair.find('End')]
+					#total_data.pop()
+					#break
 		for j in range(0,len(total_data)):
 			single_msg = ''.join(total_data[j])
 
 			print '\n[Coord] single_msg:'+single_msg + '\n'
 			buf = single_msg.split(' ')
 
+			print '\n\n[Coord] GOT MESSAGE: \n\n '+ single_msg
 			#if registration message, indicate sender node as active
 			if(buf[0] == "registration"):
 				new_node = int(buf[1])
 				if(globals.active_nodes[new_node] == 0):
 					globals.sock[new_node] = conn
-					print '[Coord] Connected with node %d'%new_node
+					print '\n[Coord] Connected with node %d'%new_node
 
 			elif(buf[0] == "join_finished"):
 				new_node = int(buf[1])
@@ -60,28 +54,27 @@ def recvThread(conn, unique):
 					print '[Coord] Can take new command now :)\n'
 			#------Node requested coordinator to forward a message to a different node-----
 			elif(buf[0] == "forward_to"):
-				#print '\n[Coord] received request to FORWARD: '
-				#print buf
-				#print '\n'
+				print '[Coord] received request to FORWARD: '
+				print buf
+				print '\n'
 				dest = int(buf[1])
 				msg = buf[2]+' '+buf[3] +' '+buf[4]
-				#print '\n[Coord] Sending forward_to to node %d\n'%dest
-				#print '\n[Coord] Content: ' + msg + '\n'
-				if(globals.sock[dest].sendall("Start"+msg+"End")==None):
+				print '[Coord] Sending forward_to to node %d\n'%dest
+				print '[Coord] Content: ' + msg + '\n'
+				if(globals.sock[dest].sendall(msg)==None):
 					pass
 				else:
-					print '\n[Coord] I fail as a coordinator :(\n'
+					print '[Coord] I fail as a coordinator :(\n'
 			elif(buf[0] == "forward_predecesor_to"):
-				#print '\n[Coord] received request to FORWARD find_predecessor: '
-				#print buf
-				#print '\n'
+				print '[Coord] received request to FORWARD find_predecessor: '
+				print buf
+				print '\n'
 				dest2 = int(buf[1])
 				msg2 = buf[2]+' '+buf[3]
-				if(globals.sock[dest2].sendall("Start"+msg2+"End")==None):
+				if(globals.sock[dest2].sendall(msg2)==None):
 					pass
 				else:
-					print '\n[Coord] I fail as a coordinator :(\n'
-
+					print '[Coord] I fail as a coordinator :(\n'
 
 #adds a node to Chord
 def join_handler(node_id):
@@ -92,6 +85,7 @@ def join_handler(node_id):
 
 	#create a thread representing the node
 	myNode = Node(node_id)
+	globals.active_nodes[node_id] = True
 
 #removes a node from Chord
 def leave_handler(node_id):
@@ -130,11 +124,11 @@ def find_handler(node_id, key_id):
 def show_handler(node):
 	if node is "all":
 		print '[Coord] sending show-all command to 0\n'
-		globals.sock[0].sendall("Start"+"show all"+"End")
+		globals.sock[0].sendall("show all")
 	else:
 		if(globals.sock[node] != None):
 			print '[Coord] sending show command to %d\n' %node
-			globals.sock[node].sendall("Start"+"show you"+"End")
+			globals.sock[node].sendall("show you")
 
 #receives connection from the nodes
 def server():

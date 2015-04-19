@@ -71,7 +71,8 @@ class Node:
 		counter = 10
 		while(counter>0):
 			counter-=1
-		self.coord.sendall("join_finished "+ str(self.node_id))
+		msg = "join_finished " + str(self.node_id)
+		self.coord.sendall(msg+"End")
 	## initialize conneciton to 0th node
 	def init_base(self):
 		try:
@@ -127,7 +128,8 @@ class Node:
 			sys.exit();
 
 		#register client to the coordinator
-		if(self.coord.sendall("registration " + str(self.node_id))==None):
+		msg = "registration " + str(self.node_id)
+		if(self.coord.sendall(msg+"End")==None):
 			print '[Node %s] connected to coordinator' % self.node_id
 		else:
 			print 'client registration incomplete'
@@ -166,7 +168,9 @@ class Node:
 		#continuously receive data from the nodes
 		while(1):
 			data = conn.recv(1024)
-
+			print '[Node %d] Got Message: '%self.node_id
+			print data
+			print '\n'
 			buf = data.split(' ')
 			#--------------ONLY NODE 0--------------
 
@@ -346,7 +350,7 @@ class Node:
 				self.sock[node].sendall("find_predecessor "+str(req_node))
 			else:
 				request = "forward_predecessor_to"+' ' + str(node) +' ' + "find_predecessor" +' '+ str(req_node)
-				self.coord.sendall(request)
+				self.coord.sendall(request+"End")
 			#print'[Node %d]sent find_predecessor request to node_%d\n' %(self.node_id, node)
 			
 			#wait for reply
@@ -410,7 +414,7 @@ class Node:
 				print '[Node %d] message wasnt sent\n'%self.node_id
 		else: #I don't have connection, then talk to coordinator
 			request = "forward_to"+' ' + str(dest_node) +' '+ request
-			if(self.coord.sendall(request)==0):
+			if(self.coord.sendall(request+"End")==0):
 				pass
 			else:
 				print '[Node %d] message wasnt sent\n'%self.node_id
