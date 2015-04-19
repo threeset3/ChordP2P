@@ -30,6 +30,12 @@ def recvThread(conn, unique):
 				print '[Coord] Marking node %d as active\n' % new_node
 				print '[Coord] Can take new command now :)\n'
 
+		#------Node requested coordinator to forward a message to a different node-----
+		elif(buf[0] == "forward_to"):
+			dest = int(buf[1])
+			msg = buf[2]+' '+buf[3] +' '+buf[4]
+			globals.sock[dest].sendall(msg)
+
 #adds a node to Chord
 def join_handler(node_id):
 	#check if the node already exists
