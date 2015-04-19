@@ -1,7 +1,7 @@
 #main.py
 
 import socket
-import sys
+import sys, getopt
 import threading
 import thread
 import time
@@ -94,6 +94,8 @@ def join_handler(node_id):
 
 	#create a thread representing the node
 	myNode = Node(node_id)
+	globals.nodes[node_id] = myNode
+	#store the object globally - needed to delete the object later
 
 #removes a node from Chord
 def leave_handler(node_id):
@@ -104,17 +106,18 @@ def leave_handler(node_id):
 		return
 
 	#tell node_id to remove itself from Chord
-	msg = "leave"
+	msg = "Start"+"leave"+"End"
 	globals.sock[node_id].sendall(msg)
 	try:
 		globals.sock[node_id].sendall(msg)
 	except socket.error , msg2:
 		print '[[ Send failed : ' + str(msg2[0]) + ' Message ' + msg2[1] + ' ]]' + '\n'
 		sys.exit()
-
 	#indicate that this node is inactive
 	globals.active_nodes[node_id] = 0
 
+	#delete the object
+	del globals.nodes[node_id]
 #tells node 'node_id' to find key with id 'key_id'
 def find_handler(node_id, key_id):
 	#check if node_id exists
@@ -165,9 +168,17 @@ def server():
 	conn.close()
 	s_server.close()
 
-def main():
+def main(argv):
 	#create the global vars
 	globals.init()
+
+	#get filename
+	try:
+		opts, args = getopt.getopt(argv,'-g:', ["filename"])
+	except getopt.GetoptError:
+		print 'main.py -i <inputfile>'
+		sys.exit(2)
+	globals.filename = argv[0]
 
 	#thread for intializing the coordinator to talk with nodes
 	server_thread = threading.Thread(target=server, args=())
@@ -187,18 +198,23 @@ def main():
 			if cmd[0] == "join" and cmd[1] != None:
 				globals.cmd_done=0
 				join_handler(int(cmd[1]))
+
 			elif cmd[0] == "find" and cmd[1] != None and cmd[2] != None:
 				globals.cmd_done=0
 				find_handler(int(cmd[1]), int(cmd[2]))
+
 			elif cmd[0] == "leave" and cmd[1] != None:
 				globals.cmd_done=0
-				leave_handler(cmd[1])
+				leave_handler(int(cmd[1]))
+
 			elif cmd[0] == "show" and cmd[1] == "all":
 				globals.cmd_done=0
 				show_handler("all")
+
 			elif cmd[0] == "show" and cmd[1] != None:
 				globals.cmd_done=0
 				show_handler(int(cmd[1]))
+
 			elif cmd[0] == "quit":
 				break;
 			elif cmd[0] == "":
@@ -208,5 +224,16 @@ def main():
 	server_thread.join()
 	sys.exit()
 	print'[Coord] I quit\n'
+
 #execution starts here
-main()
+if __name__ == "__main__":
+   main(sys.argv[1:])
+
+
+
+
+
+
+
+
+

@@ -475,6 +475,8 @@ class Node:
 		for x in range(self.key_start, self.key_end):
 			s.append(x)
 		key_list = (" ".join(str(e) for e in s))
+		globals.file.write(str(self.node_id) + " ")
+		globals.file.write(key_list+ " ")
 		print key_list
 
 	def update_keys(self):
@@ -560,14 +562,19 @@ class Node:
 
 	#--------COMMAND HANDLERS-------
 	def show_handler(self, cmd):
+		if globals.file == None or globals.file.closed==True:
+			globals.file = open(globals.filename, "w")
 		print '\n[Node %d] FINGER TABLE:\n'%self.node_id
 		self.print_ft()
 		print 'predecessor: %d\n'%self.predecessor
 		print '[Node %d] KEYS:\n' %self.node_id
 		self.print_keys()
-
+		#write keys to the given file
 		if cmd == "all" and self.ft[0] != 0:
+			globals.file.write("\n")
 			self.sock[self.ft[0]].sendall("Start"+"show all"+"End")
+			return
+		globals.file.close()
 		self.cmd_finished()
 
 	def find_handler(self, key_to_find):
@@ -583,6 +590,16 @@ class Node:
 			succ = int(result[1])
 			print '[Node %d] FOUND KEY! Node %d has the key %d\n'%(self.node_id, succ, key_to_find)
 		self.cmd_finished()
+	def leave_handler(self):
+		print 'wasap'
+		#tell appropriate nodes Adios
+			#others will change their keys accordingly
+		#tell your successor that its new predecessor is your predecessor
+		#tell your predecessor that its new successor is your successor
+
+		#do cleanup
+			#destroy sockets
+			#kill threads
 
 
 
