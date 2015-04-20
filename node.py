@@ -62,7 +62,7 @@ class Node:
 			self.conn_finger_table()
 			self.conn_predecessor()
 			#4. Update the finger table of existing nodes
-			self.update_others()
+			self.update_others("update_table")
 			#5. Transfer keys to node_id
 		self.cmd_done = 1
 
@@ -92,12 +92,12 @@ class Node:
 	#receives finger table from node 0
 	def request_FT(self):
 		self.node0.sendall("Start"+"registration " + str(self.node_id)+"End")
-		print '[Node %d] Connected to node 0.\n' % self.node_id
+		#print '[Node %d] Connected to node 0.\n' % self.node_id
 
 	#joined node fill in his local table
 	def build_table(self, msg):
 		req_ft = msg.split(' ')
-		print '\n[Node %d]Inside build_table, req_ft: '%self.node_id + str(req_ft) + '\n'
+		#print '\n[Node %d]Inside build_table, req_ft: '%self.node_id + str(req_ft) + '\n'
 		for x in range(1, 9):
 			self.ft[x-1] = int(req_ft[x])
 			#to avoid re-connecting to node 0
@@ -166,7 +166,7 @@ class Node:
 		self.pred_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		node_port = int(globals.coord_port) + int(self.predecessor) + 1
 		self.pred_sock.connect((globals.coord_ip, node_port))
-		print '[Node %d] Connected to predecessor\n'%self.node_id
+		#print '[Node %d] Connected to predecessor\n'%self.node_id
 		
 		#receive messages from the newly connected node
 		server_t=threading.Thread(target = self.recvThread, args = (self.pred_sock,))
@@ -215,7 +215,7 @@ class Node:
 				#--------------END-------------------
 				#REPLY - node 0 send self its node table
 				elif(buf[0]=="ft"):
-					print '\n[Node %d] Received FT\n'%self.node_id
+					#print '\n[Node %d] Received FT\n'%self.node_id
 					self.build_table(single_msg)
 
 				#REPLY - to find_predecessor
@@ -258,15 +258,25 @@ class Node:
 						self.update_table_handler(idx, finger)
 					except ValueError:
 						print buf
-					
+				elif(buf[0] == "imma_leaving"):
+					try:
+						who_leaving = int(buf[1])
+						index = int(buf[2])
+						replacement = int(buf[3])
+						print '[Node %d] Node %d is Leaving? why ;_;\n'%(self.node_id, who_leaving)
+						self.update_leave_handler(index, replacement, who_leaving)
+					except ValueError:
+						print buf
 				#--------------COMMAND - node is told to print keys-----------
 				if(buf[0]=="show"):
 					cmd = buf[1]
-					print '\n[Node %d]Received cmd show '%self.node_id + str(buf) + '\n'
+					#print '\n[Node %d]Received cmd show '%self.node_id + str(buf) + '\n'
 					self.show_handler(cmd)
 				elif(buf[0] == "find"):
 					key_to_find = int(buf[1])
 					self.find_handler(key_to_find)
+				elif(buf[0] == "leave"):
+					self.leave_handler()
 
 
 	#receives connection from other nodes
@@ -424,7 +434,7 @@ class Node:
 		return retVal
 
 	#new node will help others to update their finger table
-	def update_others(self):
+	def update_others(self, request):
 		#print '[Node %d] Updating others Yay! or Not\n'%self.node_id
 		for i in range(1, 8):
 			id = int(self.wrap(self.node_id - math.pow(2, i)+1))
@@ -434,16 +444,19 @@ class Node:
 			finger_id = int(pred_succ[0])
 			if(finger_id == self.node_id):
 				#if i'm the predecessor, no action is required - update finished!
-			#	print '[Node %d] Done updating others\n'%self.node_id
+				#print '[Node %d] Done updating others\n'%self.node_id
 				return
 			#print '[Node %d] update_finger_table(%d, %d, %d)\n'%(self.node_id, self.node_id, finger_id, i)
-			self.update_finger_table(self.node_id, finger_id, i)
+			if(request == "update_table"):
+				self.update_finger_table(request, self.node_id, finger_id, i)
+			else:
+				self.update_finger_table(request, self.ft[0], finger_id, i)
 
 	#	print '[Node %d] Done updating Others\n'%self.node_id
 
-	def update_finger_table(self, new_node, dest_node, idx):
-		request = ""
-		request = "update_table"+ ' ' + str(idx) + ' ' + str(new_node)
+	def update_finger_table(self, request, new_node, dest_node, idx):
+		#request = "update_table"+ ' ' + str(idx) + ' ' + str(new_node)
+		request = request + ' ' + str(idx) + ' ' +str(new_node)
 		#check if I can reach this node
 		if(self.sock.has_key(dest_node)):
 			self.sock[dest_node].sendall("Start"+request+"End")
@@ -452,7 +465,7 @@ class Node:
 		else: #I don't have connection, then talk to coordinator
 			request = "forward_to"+' ' + str(dest_node) +' '+ request
 			self.coord.sendall("Start"+request+"End")
-		print '[Node %d] sending request to dest_node:%d to update table: '%(self.node_id, dest_node) + request + '\n'
+		#print '[Node %d] sending request to dest_node:%d to update table: '%(self.node_id, dest_node) + request + '\n'
 
 	#this function removes node with the id "node_id" from the system
 	def remove_node(self, node_id):
@@ -476,6 +489,8 @@ class Node:
 			s.append(x)
 		key_list = (" ".join(str(e) for e in s))
 		globals.file.write(str(self.node_id) + " ")
+		if(self.node_id==0):
+			globals.file.write("0" + " ")
 		globals.file.write(key_list+ " ")
 		print key_list
 
@@ -487,7 +502,6 @@ class Node:
 
 	def wrap(self, finger_id):
 		if(finger_id < 0):
-			print '***Its less than 0!!!***\n'
 			finger_id = 255 + finger_id
 		return finger_id 
 
@@ -500,7 +514,7 @@ class Node:
 
 	def registration_handler(self,conn, req_node):
 		self.sock[req_node] = conn
-		print '\n[Node %d]Saved socked for node %d: \n' %(self.node_id, req_node)
+		#print '\n[Node %d]Saved socked for node %d: \n' %(self.node_id, req_node)
 		newinfo = self.init_finger_table(req_node)
 		newinfo = "ft " + newinfo
 		if(conn.sendall("Start"+newinfo+"End")==None):
@@ -520,9 +534,11 @@ class Node:
 
 	def your_predecessor_handler(self, predecessor):
 		self.predecessor = predecessor
+		print '[Node %d] My new predecessor is %d'%(self.node_id, predecessor)
 		self.update_keys()
 		self.conn_predecessor()
 	def your_successor_handler(self, successor):
+		print '[Node %d] My new successor is %d'%(self.node_id, successor)
 		#self.clear_old_finger(idx)
 		self.ft[0] = successor
 		#connect to new nodes if required
@@ -536,9 +552,9 @@ class Node:
 		globals.printing = 0
 
 	def update_table_handler(self, idx, finger):
-		print '[Node %d]Received update_table request: idx: %d node:%d\n'%(self.node_id, idx, finger)
+		#print '[Node %d]Received update_table request: idx: %d node:%d\n'%(self.node_id, idx, finger)
 		fing_succ = int(self.node_id+math.pow(2, idx))
-		print '[Node %d] idx: %d fing_succ: %d\n'%(self.node_id, idx, fing_succ)
+		#print '[Node %d] idx: %d fing_succ: %d\n'%(self.node_id, idx, fing_succ)
 		if(finger > self.node_id):
 			accept = 0
 			if(finger < self.ft[idx]):
@@ -551,14 +567,22 @@ class Node:
 			elif(self.ft[idx] == self.node_id and finger >=fing_succ):
 				accept = 1
 			if(accept):
-				print '[Node %d] Updating_table_handler: idx: %d, new node %d \n'%(self.node_id, idx, finger)
+				#print '[Node %d] Updating_table_handler: idx: %d, new node %d \n'%(self.node_id, idx, finger)
 
 				#before changing, clear old
 				#self.clear_old_finger(idx)
 				self.ft[idx] = finger
 				self.conn_finger_table()
-				print '[Node %d] you better get it node %d\n'%(self.node_id, self.predecessor)
-				self.update_finger_table(finger, self.predecessor, idx)
+				#print '[Node %d] you better get it node %d\n'%(self.node_id, self.predecessor)
+				self.update_finger_table("update_table", finger, self.predecessor, idx)
+	def update_leave_handler(self, idx, newnode, wholeaving):
+		print '[Node %d]Node %d is leaving change idx%d ?\n'%(self.node_id, wholeaving, idx)
+		#if I possess the leaving node in ft[idx], its successor shall take its place
+		if(self.ft[idx] == wholeaving):
+			self.ft[idx] = newnode
+			self.conn_finger_table()
+			print '[Node %d] Node %d, you better fuking get this\n'%(self.node_id, self.predecessor)
+			self.update_finger_table("imma_leaving "+str(wholeaving), newnode, self.predecessor, idx)
 
 	#--------COMMAND HANDLERS-------
 	def show_handler(self, cmd):
@@ -590,16 +614,24 @@ class Node:
 			succ = int(result[1])
 			print '[Node %d] FOUND KEY! Node %d has the key %d\n'%(self.node_id, succ, key_to_find)
 		self.cmd_finished()
+
+	#self.leave
 	def leave_handler(self):
-		print 'wasap'
+		#print 'wasap'
 		#tell appropriate nodes Adios
 			#others will change their keys accordingly
+		self.update_others("imma_leaving "+str(self.node_id))
 		#tell your successor that its new predecessor is your predecessor
+		print '[Node %d]my successor:%d should change its predecessor to %d\n'%(self.node_id, self.ft[0], self.predecessor)
+		self.sock[self.ft[0]].sendall("Start" + "your_predecessor" + ' ' + str(self.predecessor) + "End")
 		#tell your predecessor that its new successor is your successor
-
+		print '[Node %d]my predecessor:%d should change its successor to %d\n'%(self.node_id, self.predecessor , self.ft[0])
+		self.pred_sock.sendall("Start"+"your_successor" + ' ' + str(self.ft[0])+ "End")
+		self.cmd_finished()
 		#do cleanup
 			#destroy sockets
 			#kill threads
+	
 
 
 

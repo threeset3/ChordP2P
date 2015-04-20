@@ -42,34 +42,32 @@ def recvThread(conn, unique):
 		for j in range(0,len(total_data)):
 			single_msg = ''.join(total_data[j])
 
-			print '\n[Coord] single_msg:'+single_msg + '\n'
+			#print '\n[Coord] single_msg:'+single_msg + '\n'
 			buf = single_msg.split(' ')
 
 			#if registration message, indicate sender node as active
 			if(buf[0] == "registration"):
 				new_node = int(buf[1])
 				if(globals.active_nodes[new_node] == 0):
+					globals.active_nodes[new_node] = 1
+					print '[Coord] Marking node %d as active\n' % new_node
 					globals.sock[new_node] = conn
 					print '[Coord] Connected with node %d'%new_node
 
 			elif(buf[0] == "cmd_finished"):
 				new_node = int(buf[1])
 				print '[Coord] Node %d done with operation\n'%new_node
-				if(globals.active_nodes[new_node] == 0):
-					globals.active_nodes[new_node] = 1
-					print '[Coord] Marking node %d as active\n' % new_node
 				globals.cmd_done=1
 				print '[Coord] Can take new command now :)\n'
 			#------Node requested coordinator to forward a message to a different node-----
 			elif(buf[0] == "forward_to"):
-				#print '\n[Coord] received request to FORWARD: '
-				#print buf
-				#print '\n'
 				dest = int(buf[1])
-				msg = buf[2]+' '+buf[3] +' '+buf[4]
+				forward = ''
+				for k in range(2, len(buf)):
+					forward += buf[k] + ' '
 				#print '\n[Coord] Sending forward_to to node %d\n'%dest
 				#print '\n[Coord] Content: ' + msg + '\n'
-				if(globals.sock[dest].sendall("Start"+msg+"End")==None):
+				if(globals.sock[dest].sendall("Start"+forward+"End")==None):
 					pass
 				else:
 					print '\n[Coord] I fail as a coordinator :(\n'
@@ -90,6 +88,7 @@ def join_handler(node_id):
 	#check if the node already exists
 	if(globals.active_nodes[node_id]):
 		print("Node already in Chord!\n")
+		globals.cmd_done = 1
 		return
 
 	#create a thread representing the node
@@ -103,17 +102,19 @@ def leave_handler(node_id):
 	#check if the node exists
 	if(globals.active_nodes[node_id] == 0):
 		print("Node doesn't exist!\n")
+		globals.cmd_done = 1
 		return
 
 	#tell node_id to remove itself from Chord
 	msg = "Start"+"leave"+"End"
-	globals.sock[node_id].sendall(msg)
 	try:
 		globals.sock[node_id].sendall(msg)
 	except socket.error , msg2:
 		print '[[ Send failed : ' + str(msg2[0]) + ' Message ' + msg2[1] + ' ]]' + '\n'
 		sys.exit()
 	#indicate that this node is inactive
+
+	print '[Coord] Marking node%d as inactive\n'%node_id
 	globals.active_nodes[node_id] = 0
 
 	#delete the object
@@ -121,8 +122,9 @@ def leave_handler(node_id):
 #tells node 'node_id' to find key with id 'key_id'
 def find_handler(node_id, key_id):
 	#check if node_id exists
-	if(globals.active_nodes[node_id] == 0):
+	if(globals.active_nodes[node_id] is 0):
 		print("Given node not in the system!\n")
+		globals.cmd_done = 1
 		return
 	#tell node_id to find key_id
 	msg = "Start"+ "find "+str(key_id) + "End"
@@ -136,6 +138,11 @@ def show_handler(node):
 		print '[Coord] sending show-all command to 0\n'
 		globals.sock[0].sendall("Start"+"show all"+"End")
 	else:
+		print '[Coord] show_handler for node %d\n'%node
+		if(globals.active_nodes[node] is 0):
+			print '[Coord] Requested node is inactive\n'
+			globals.cmd_done = 1
+			return
 		if(globals.sock[node] != None):
 			print '[Coord] sending show command to %d\n' %node
 			globals.sock[node].sendall("Start"+"show you"+"End")
